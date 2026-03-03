@@ -9,7 +9,11 @@
 	},
 	"upload_source_maps": true,
 	"vars": {
-		"VALUE_FROM_CLOUDFLARE": "Hello from Cloudflare",
-		"ANTHROPIC_API_KEY": "your-api-key-here"
+		"VALUE_FROM_CLOUDFLARE": "Hello from Cloudflare"
 	}
 }
+
+注意：敏感信息（如 API Keys）應使用 wrangler secret 命令設置，而不是寫在此文件中。
+
+設置 secret 的命令：
+npx wrangler secret put GOOGLE_AI_STUDIO_API_KEY
