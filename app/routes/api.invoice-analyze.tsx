@@ -15,11 +15,11 @@ export async function action({ request, context }: { request: Request; context: 
     }
 
     // 从 Cloudflare 环境变量中获取 API Key
-    const API_KEY = context?.cloudflare?.env?.ANTHROPIC_API_KEY || '';
+    const API_KEY = context?.cloudflare?.env?.GOOGLE_AI_STUDIO_API_KEY || '';
     
     if (!API_KEY) {
       return new Response(
-        JSON.stringify({ error: '未設置 ANTHROPIC_API_KEY 環境變數。請在 .env 文件或 Cloudflare Workers 中添加你的 API Key。' }),
+        JSON.stringify({ error: '未設置 GOOGLE_AI_STUDIO_API_KEY 環境變數。請在 .env 文件或 Cloudflare Workers 中添加你的 API Key。' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
