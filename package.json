@@ -15,17 +15,21 @@
 	},
 	"dependencies": {
 		"isbot": "5.1.32",
+		"pdfjs-dist": "^5.5.207",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"react-router": "7.9.6"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "1.15.3",
+		"@cloudflare/workers-types": "^4.20260301.1",
 		"@react-router/dev": "7.9.6",
 		"@tailwindcss/vite": "4.1.17",
 		"@types/node": "24.10.1",
-		"@types/react": "^19.0.0",
+		"@types/pdfjs-dist": "^2.10.378",
+		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.0.0",
+		"cross-env": "^10.1.0",
 		"tailwindcss": "4.1.17",
 		"typescript": "5.9.3",
 		"vite": "^6.0.0",
@@ -38,7 +42,8 @@
 		"cf-typegen": "wrangler types && react-router typegen",
 		"check": "tsc && react-router build && wrangler deploy --dry-run",
 		"deploy": "wrangler deploy",
-		"dev": "react-router dev",
+		"dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 react-router dev",
+		"postinstall": "node -e \"require('fs').copyFileSync('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', 'public/pdf.worker.min.mjs')\"",
 		"preview": "npm run build && vite preview",
 		"typecheck": "npm run typegen && tsc -b"
 	},
