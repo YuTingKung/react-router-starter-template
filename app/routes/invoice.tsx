@@ -12,7 +12,7 @@ export default function InvoiceRecognition() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [base64Data, setBase64Data] = useState<string>('');
   const [mediaType, setMediaType] = useState<string>('image/jpeg');
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.0-flash-exp');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3-flash-preview');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<InvoiceResult | null>(null);
   const [error, setError] = useState<string>('');

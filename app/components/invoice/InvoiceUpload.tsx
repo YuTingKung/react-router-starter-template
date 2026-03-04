@@ -26,8 +26,9 @@ const ALLOWED_TYPES = [
 ];
 
 const MODELS = [
-  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (高精度)' },
-  { value: 'gemma-3-27b-it', label: 'Gemma 3 27B (輕量)' }
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (高精度/202512)' }, //2025-12-17推出
+  { value: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite (速度快/202603)' }, //2026-03-04推出
+  { value: 'gemma-3-27b-it', label: 'Gemma 3 27B (輕量化/202503)' } //2025-03-12推出
 ];
 
 const InvoiceUpload: React.FC<Props> = ({
