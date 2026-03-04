@@ -24,7 +24,8 @@ export interface InvoiceResult {
 
 export async function analyzeInvoice(
   base64: string,
-  mediaType: string
+  mediaType: string,
+  model?: string
 ): Promise<InvoiceResult> {
   // 调用服务器端 API 而不是直接调用 Anthropic API
   const response = await fetch('/api/invoice-analyze', {
@@ -32,7 +33,7 @@ export async function analyzeInvoice(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ base64, mediaType })
+    body: JSON.stringify({ base64, mediaType, model })
   });
 
   if (!response.ok) {

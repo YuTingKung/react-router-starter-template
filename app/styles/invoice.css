@@ -145,6 +145,55 @@
   box-shadow: 0 0 8px var(--accent);
 }
 
+.model-selector {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface2);
+}
+
+.model-selector label {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.model-dropdown {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Noto Sans TC', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  outline: none;
+}
+
+.model-dropdown:hover {
+  border-color: var(--accent2);
+}
+
+.model-dropdown:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.model-dropdown:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.model-dropdown option {
+  background: var(--surface);
+  color: var(--text);
+}
+
 .upload-zone {
   margin: 24px;
   border: 2px dashed var(--border);

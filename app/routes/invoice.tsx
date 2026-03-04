@@ -12,6 +12,7 @@ export default function InvoiceRecognition() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [base64Data, setBase64Data] = useState<string>('');
   const [mediaType, setMediaType] = useState<string>('image/jpeg');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.0-flash-exp');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<InvoiceResult | null>(null);
   const [error, setError] = useState<string>('');
@@ -45,7 +46,7 @@ export default function InvoiceRecognition() {
     setStatus('正在進行 AI 辨識分析...');
 
     try {
-      const data = await analyzeInvoice(base64Data, mediaType);
+      const data = await analyzeInvoice(base64Data, mediaType, selectedModel);
       setResult(data);
       setStatus('辨識完成 ✓');
     } catch (err) {
@@ -96,6 +97,8 @@ export default function InvoiceRecognition() {
           previewUrl={previewUrl}
           loading={loading}
           status={status}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
           onFileLoad={handleFileLoad}
           onAnalyze={handleAnalyze}
           onClear={handleClear}

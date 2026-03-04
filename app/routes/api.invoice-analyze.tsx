@@ -5,7 +5,7 @@ export async function action({ request, context }: { request: Request; context: 
 
   try {
     const body = await request.json() as any;
-    const { base64, mediaType } = body;
+    const { base64, mediaType, model } = body;
 
     if (!base64 || !mediaType) {
       return new Response(
@@ -23,8 +23,11 @@ export async function action({ request, context }: { request: Request; context: 
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`, {
+    
+    // 使用用户选择的模型，如果没有提供则使用默认模型
+    const selectedModel = model || 'gemini-3-flash-preview';
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

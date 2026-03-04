@@ -5,6 +5,8 @@ interface Props {
   previewUrl: string;
   loading: boolean;
   status: string;
+  selectedModel: string;
+  onModelChange: (model: string) => void;
   onFileLoad: (
     file: File,
     previewUrl: string,
@@ -23,11 +25,18 @@ const ALLOWED_TYPES = [
   'application/pdf'
 ];
 
+const MODELS = [
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (高精度)' },
+  { value: 'gemma-3-27b-it', label: 'Gemma 3 27B (輕量)' }
+];
+
 const InvoiceUpload: React.FC<Props> = ({
   file,
   previewUrl,
   loading,
   status,
+  selectedModel,
+  onModelChange,
   onFileLoad,
   onAnalyze,
   onClear
@@ -98,6 +107,23 @@ const InvoiceUpload: React.FC<Props> = ({
       <div className="card-header">
         <div className="dot"></div>
         上傳發票
+      </div>
+
+      <div className="model-selector">
+        <label htmlFor="model-select">AI 模型：</label>
+        <select
+          id="model-select"
+          value={selectedModel}
+          onChange={(e) => onModelChange(e.target.value)}
+          disabled={loading}
+          className="model-dropdown"
+        >
+          {MODELS.map((model) => (
+            <option key={model.value} value={model.value}>
+              {model.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {!file ? (
