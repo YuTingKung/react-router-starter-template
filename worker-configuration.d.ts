@@ -7,6 +7,7 @@ declare namespace Cloudflare {
 	}
 	interface Env {
 		VALUE_FROM_CLOUDFLARE: "Hello from Cloudflare";
+		API_LOG_QUEUE: Queue;
 	}
 }
 interface Env extends Cloudflare.Env {}
