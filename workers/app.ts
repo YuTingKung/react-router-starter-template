@@ -17,16 +17,17 @@ const requestHandler = createRequestHandler(
 export default {
 	async fetch(request, env, ctx) {
 		// 記錄 API 請求到隊列
-		try {
-			await env.API_LOG_QUEUE.send({
-				url: request.url,
-				method: request.method,
-				headers: Object.fromEntries(request.headers),
-				timestamp: new Date().toISOString(),
-			});
-		} catch (error) {
-			console.error('Failed to send log to queue:', error);
-		}
+		// try {
+		// 	await env.API_LOG_QUEUE.send({
+		// 		url: request.url,
+		// 		method: request.method,
+		// 		headers: Object.fromEntries(request.headers),
+		// 		body: await request.clone().text().catch(() => null), // Cloudflare Queue 限制 128KB 消息大小
+		// 		timestamp: new Date().toISOString(),
+		// 	});
+		// } catch (error) {
+		// 	console.error('Failed to send log to queue:', error);
+		// }
 
 		return requestHandler(request, {
 			cloudflare: { env, ctx },
