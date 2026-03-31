@@ -1,6 +1,9 @@
+/// <reference path="../types/virtual-public-ttf-fonts.d.ts" />
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "./+types/text-to-png";
 import { getStoredFontData, listStoredFonts, saveTtfFont, type StoredFontMeta } from "../utils/fontStorage";
+import { publicTtfFonts } from "virtual:public-ttf-fonts";
 
 type LoadedFont = {
 	id: string;
@@ -11,11 +14,7 @@ const DEFAULT_FAMILY = "ui-sans-serif, system-ui, sans-serif";
 const PREVIEW_MAX_W = 900;
 const PREVIEW_MAX_H = 420;
 
-const PUBLIC_TTF_FONTS: Array<{ id: string; name: string; url: string }> = [
-	{ id: "public:ChenYuluoyan-2.0-Thin.ttf", name: "ChenYuluoyan 2.0 Thin", url: "/ChenYuluoyan-2.0-Thin.ttf" },
-	{ id: "public:ChenYuluoyan-Thin-Monospaced.ttf", name: "ChenYuluoyan Thin Monospaced", url: "/ChenYuluoyan-Thin-Monospaced.ttf" },
-];
-
+const PUBLIC_TTF_FONTS: Array<{ id: string; name: string; url: string }> = publicTtfFonts;
 const DEFAULT_PUBLIC_FONT_ID = PUBLIC_TTF_FONTS[0]?.id ?? "";
 
 const PRESET_STROKE = "#2f343a";
@@ -396,8 +395,43 @@ export default function TextToPngRoute() {
 					</div>
 				</div>
 
-				<div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-					<section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 md:p-4 order-1 md:order-2">
+				<div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 md:auto-rows-min">
+					<section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 md:p-4 md:col-start-1 md:row-start-1">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+							<div className="space-y-1">
+								<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">上傳 TTF</label>
+								<input
+									type="file"
+									accept=".ttf,font/ttf"
+									onChange={(e) => handleUpload(e.currentTarget.files?.[0] ?? null)}
+									className="block w-full text-[16px] file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-[16px] file:font-medium hover:file:bg-gray-200 dark:file:bg-gray-800 dark:hover:file:bg-gray-700"
+								/>
+							</div>
+							<div className="space-y-1">
+								<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">字體</label>
+								<select
+									value={selectedFontId}
+									onChange={(e) => handleSelectFont(e.currentTarget.value)}
+									disabled={isLoadingFonts}
+									className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-2 py-2 text-[16px]"
+								>
+									<option value="">系統預設</option>
+									{PUBLIC_TTF_FONTS.map((f) => (
+										<option key={f.id} value={f.id}>
+											{f.name}
+										</option>
+									))}
+									{fonts.map((f) => (
+										<option key={f.id} value={f.id}>
+											{f.name}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
+					</section>
+
+					<section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 md:p-4 md:col-start-2 md:row-start-1 md:row-span-2">
 						<div className="flex items-center justify-between">
 							<div className="text-xs font-medium text-gray-700 dark:text-gray-200">即時預覽</div>
 							<div className="text-xs text-gray-600 dark:text-gray-300">調整會即時更新</div>
@@ -406,7 +440,7 @@ export default function TextToPngRoute() {
 							<canvas ref={previewCanvasRef} style={{ maxWidth: "100%", height: "auto" }} />
 						</div>
 
-						<div className="mt-3 flex items-center gap-2">
+						<div className="mt-3 hidden md:flex items-center gap-2">
 							<button
 								type="button"
 								onClick={generatePng}
@@ -437,48 +471,13 @@ export default function TextToPngRoute() {
 								手機分享
 							</button>
 						</div>
-						{pngUrl ? (
-							<div className="mt-2 text-xs text-gray-600 dark:text-gray-300">iPhone：用「手機分享」最省步驟；Google Photos 可能把透明變白底。</div>
-						) : (
-							<div className="mt-2 text-xs text-gray-600 dark:text-gray-300">先按「輸出 PNG」才可下載/分享。</div>
-						)}
+						<div className="mt-2 hidden md:block text-xs text-gray-600 dark:text-gray-300">
+							{pngUrl ? "iPhone：用「手機分享」最省步驟；Google Photos 可能把透明變白底。" : "先按「輸出 PNG」才可下載/分享。"}
+						</div>
 					</section>
 
-					<section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 md:p-4 order-2 md:order-1">
+					<section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 md:p-4 md:col-start-1 md:row-start-2">
 						<div className="space-y-3">
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-								<div className="space-y-1">
-									<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">上傳 TTF</label>
-									<input
-										type="file"
-										accept=".ttf,font/ttf"
-										onChange={(e) => handleUpload(e.currentTarget.files?.[0] ?? null)}
-										className="block w-full text-[16px] file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-[16px] file:font-medium hover:file:bg-gray-200 dark:file:bg-gray-800 dark:hover:file:bg-gray-700"
-									/>
-								</div>
-								<div className="space-y-1">
-									<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">字體</label>
-									<select
-										value={selectedFontId}
-										onChange={(e) => handleSelectFont(e.currentTarget.value)}
-										disabled={isLoadingFonts}
-										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-2 py-2 text-[16px]"
-									>
-										<option value="">系統預設</option>
-										{PUBLIC_TTF_FONTS.map((f) => (
-											<option key={f.id} value={f.id}>
-												{f.name}
-											</option>
-										))}
-										{fonts.map((f) => (
-											<option key={f.id} value={f.id}>
-												{f.name}
-											</option>
-										))}
-									</select>
-								</div>
-							</div>
-
 							<div className="space-y-1">
 								<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">文字</label>
 								<textarea
@@ -487,6 +486,41 @@ export default function TextToPngRoute() {
 									rows={3}
 									className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-2 py-2 text-[16px]"
 								/>
+							</div>
+
+							<div className="flex md:hidden items-center gap-2">
+								<button
+									type="button"
+									onClick={generatePng}
+									disabled={isGenerating}
+									className="rounded-md bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 px-4 py-2 text-[16px] font-medium disabled:opacity-60"
+								>
+									{isGenerating ? "輸出中…" : "輸出 PNG"}
+								</button>
+
+								<button
+									type="button"
+									onClick={() => {
+										if (pngUrl) window.open(pngUrl, "_blank", "noopener,noreferrer");
+									}}
+									disabled={!pngUrl}
+									className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-[16px] font-medium disabled:opacity-50"
+									title="開新分頁預覽/長按存圖"
+								>
+									開啟
+								</button>
+
+								<button
+									type="button"
+									onClick={shareToPhone}
+									disabled={!pngUrl}
+									className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-[16px] font-medium disabled:opacity-50"
+								>
+									手機分享
+								</button>
+							</div>
+							<div className="md:hidden text-xs text-gray-600 dark:text-gray-300">
+								{pngUrl ? "iPhone：用「手機分享」最省步驟；Google Photos 可能把透明變白底。" : "先按「輸出 PNG」才可下載/分享。"}
 							</div>
 
 							<div className="rounded-lg border border-gray-200 dark:border-gray-800 p-3">
@@ -547,7 +581,7 @@ export default function TextToPngRoute() {
 											className="w-full accent-gray-900 dark:accent-gray-100"
 										/>
 										<span className="rounded-md border border-gray-200 dark:border-gray-800 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 min-w-[3rem] text-center">
-											{fontWeight}
+											{Math.round(fontWeight / 100)}
 										</span>
 									</div>
 									<div className="flex items-center gap-2">
