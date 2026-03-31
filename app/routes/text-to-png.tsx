@@ -51,6 +51,7 @@ export default function TextToPngRoute() {
 
 	const loadedFontsRef = useRef<Map<string, LoadedFont>>(new Map());
 	const lastObjectUrlRef = useRef<string>("");
+	const lastPngBlobRef = useRef<Blob | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -149,7 +150,7 @@ export default function TextToPngRoute() {
 			const padding = 24 + Math.max(0, borderWidth);
 
 			const canvas = document.createElement("canvas");
-			const ctx = canvas.getContext("2d");
+			const ctx = canvas.getContext("2d", { alpha: true });
 			if (!ctx) throw new Error("無法獲取 Canvas 上下文");
 
 			ctx.font = `${fontWeight} ${fontSize}px ${family}`;
@@ -165,6 +166,7 @@ export default function TextToPngRoute() {
 
 			canvas.width = Math.ceil(maxWidth + padding * 2);
 			canvas.height = Math.ceil(lines.length * lineHeight + padding * 2);
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 			// Must reset font after resizing canvas
 			ctx.font = `${fontWeight} ${fontSize}px ${family}`;
@@ -193,6 +195,7 @@ export default function TextToPngRoute() {
 			const blob = await new Promise<Blob>((resolve, reject) => {
 				canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG 產生失敗"))), "image/png");
 			});
+			lastPngBlobRef.current = blob;
 
 			if (lastObjectUrlRef.current) {
 				URL.revokeObjectURL(lastObjectUrlRef.current);
@@ -205,6 +208,31 @@ export default function TextToPngRoute() {
 			setError(e instanceof Error ? e.message : "PNG 產生失敗");
 		} finally {
 			setIsGenerating(false);
+		}
+	}
+
+	async function shareToPhone() {
+		setError("");
+		try {
+			if (typeof window === "undefined") throw new Error("此功能只能在瀏覽器使用");
+			const blob = lastPngBlobRef.current;
+			if (!blob || !pngUrl) throw new Error("請先輸出 PNG");
+
+			const file = new File([blob], downloadName, { type: "image/png" });
+			const nav = navigator as Navigator & {
+				canShare?: (data: { files: File[] }) => boolean;
+				share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+			};
+
+			if (typeof nav.share === "function" && (!nav.canShare || nav.canShare({ files: [file] }))) {
+				await nav.share({ files: [file], title: "PNG", text: "" });
+				return;
+			}
+
+			// Fallback: open image in a new tab so mobile users can long-press to save to Photos
+			window.open(pngUrl, "_blank", "noopener,noreferrer");
+		} catch (e) {
+			setError(e instanceof Error ? e.message : "分享失敗");
 		}
 	}
 
@@ -346,7 +374,25 @@ export default function TextToPngRoute() {
 										下載 PNG
 									</a>
 								) : null}
+
+								{pngUrl ? (
+									<button
+										type="button"
+										onClick={shareToPhone}
+										className="text-sm font-medium text-gray-900 dark:text-gray-100 underline"
+									>
+										手機儲存/分享
+									</button>
+								) : null}
 							</div>
+							<p className="text-xs text-gray-600 dark:text-gray-300">
+								PNG 背景是透明的；如果你的預覽程式看起來像白底，通常只是預覽顯示方式，貼到支援透明的軟體會保留去背。
+							</p>
+							{pngUrl ? (
+								<p className="text-xs text-gray-600 dark:text-gray-300">
+									手機上建議按「手機儲存/分享」；若瀏覽器不支援，會開新分頁，你可以長按圖片選「加入相片/儲存圖片」。
+								</p>
+							) : null}
 						</div>
 					</div>
 
