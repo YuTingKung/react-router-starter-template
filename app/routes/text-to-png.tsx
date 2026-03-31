@@ -8,6 +8,8 @@ type LoadedFont = {
 };
 
 const DEFAULT_FAMILY = "ui-sans-serif, system-ui, sans-serif";
+const PREVIEW_MAX_W = 900;
+const PREVIEW_MAX_H = 420;
 
 export function meta({}: Route.MetaArgs) {
 	return [{ title: "Text to PNG" }];
@@ -39,6 +41,7 @@ async function ensureFontLoaded(fontId: string, familyName: string): Promise<voi
 export default function TextToPngRoute() {
 	const [fonts, setFonts] = useState<StoredFontMeta[]>([]);
 	const [selectedFontId, setSelectedFontId] = useState<string>("");
+	const [selectedFontFamily, setSelectedFontFamily] = useState<string>(DEFAULT_FAMILY);
 	const [text, setText] = useState<string>("在這裡輸入文字\n第二行");
 	const [color, setColor] = useState<string>("#000000");
 	const [fontWeight, setFontWeight] = useState<number>(600);
@@ -46,12 +49,14 @@ export default function TextToPngRoute() {
 	const [borderColor, setBorderColor] = useState<string>("#ffffff");
 	const [error, setError] = useState<string>("");
 	const [pngUrl, setPngUrl] = useState<string>("");
+	const [transparentCheck, setTransparentCheck] = useState<null | { isTransparent: boolean; cornerAlphas: number[] }>(null);
 	const [isGenerating, setIsGenerating] = useState<boolean>(false);
 	const [isLoadingFonts, setIsLoadingFonts] = useState<boolean>(true);
 
 	const loadedFontsRef = useRef<Map<string, LoadedFont>>(new Map());
 	const lastObjectUrlRef = useRef<string>("");
 	const lastPngBlobRef = useRef<Blob | null>(null);
+	const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -82,10 +87,13 @@ export default function TextToPngRoute() {
 		};
 	}, []);
 
-	const selectedFamily = useMemo(() => {
-		if (!selectedFontId) return DEFAULT_FAMILY;
+	useEffect(() => {
+		if (!selectedFontId) {
+			setSelectedFontFamily(DEFAULT_FAMILY);
+			return;
+		}
 		const loaded = loadedFontsRef.current.get(selectedFontId);
-		return loaded?.family ?? DEFAULT_FAMILY;
+		setSelectedFontFamily(loaded?.family ?? DEFAULT_FAMILY);
 	}, [selectedFontId]);
 
 	async function refreshFontList() {
@@ -121,18 +129,89 @@ export default function TextToPngRoute() {
 		setSelectedFontId(id);
 		setPngUrl("");
 
-		if (!id) return;
+		if (!id) {
+			setSelectedFontFamily(DEFAULT_FAMILY);
+			return;
+		}
 
 		try {
-			await loadFontIfNeeded(id);
+			const family = await loadFontIfNeeded(id);
+			setSelectedFontFamily(family);
 		} catch (e) {
+			setSelectedFontFamily(DEFAULT_FAMILY);
 			setError(e instanceof Error ? e.message : "字體載入失敗");
 		}
 	}
 
+	function drawPreview() {
+		if (typeof window === "undefined") return;
+		const canvas = previewCanvasRef.current;
+		if (!canvas) return;
+
+		const ctx = canvas.getContext("2d", { alpha: true });
+		if (!ctx) return;
+
+		const lines = (text || "").split("\n").map((l) => l.replace(/\r/g, ""));
+		const fontSize = 96;
+		const lineHeight = Math.ceil(fontSize * 1.25);
+		const padding = 24 + Math.max(0, borderWidth);
+
+		ctx.font = `${fontWeight} ${fontSize}px ${selectedFontFamily}`;
+		ctx.textBaseline = "top";
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+
+		let maxWidth = 1;
+		for (const line of lines) {
+			const m = ctx.measureText(line || " ");
+			maxWidth = Math.max(maxWidth, m.width);
+		}
+
+		const baseW = Math.ceil(maxWidth + padding * 2);
+		const baseH = Math.ceil(lines.length * lineHeight + padding * 2);
+		const scale = Math.min(1, PREVIEW_MAX_W / Math.max(1, baseW), PREVIEW_MAX_H / Math.max(1, baseH));
+
+		canvas.width = Math.max(1, Math.ceil(baseW * scale));
+		canvas.height = Math.max(1, Math.ceil(baseH * scale));
+
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+		ctx.font = `${fontWeight} ${fontSize}px ${selectedFontFamily}`;
+		ctx.textBaseline = "top";
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		ctx.fillStyle = color;
+
+		if (borderWidth > 0) {
+			ctx.strokeStyle = borderColor;
+			ctx.lineWidth = borderWidth;
+		}
+
+		for (let i = 0; i < lines.length; i++) {
+			const x = padding;
+			const y = padding + i * lineHeight;
+			const line = lines[i] || " ";
+
+			if (borderWidth > 0) {
+				ctx.strokeText(line, x, y);
+			}
+			ctx.fillText(line, x, y);
+		}
+	}
+
+	useEffect(() => {
+		let raf = 0;
+		raf = window.requestAnimationFrame(() => drawPreview());
+		return () => window.cancelAnimationFrame(raf);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [text, color, fontWeight, borderWidth, borderColor, selectedFontFamily]);
+
 	async function generatePng() {
 		setError("");
 		setIsGenerating(true);
+		setTransparentCheck(null);
 
 		try {
 			if (typeof window === "undefined") {
@@ -190,6 +269,23 @@ export default function TextToPngRoute() {
 					ctx.strokeText(line, x, y);
 				}
 				ctx.fillText(line, x, y);
+			}
+
+			// Transparency sanity check: corners should be fully transparent (alpha=0)
+			try {
+				const w = canvas.width;
+				const h = canvas.height;
+				const points: Array<[number, number]> = [
+					[0, 0],
+					[Math.max(0, w - 1), 0],
+					[0, Math.max(0, h - 1)],
+					[Math.max(0, w - 1), Math.max(0, h - 1)],
+				];
+				const alphas = points.map(([x, y]) => ctx.getImageData(x, y, 1, 1).data[3] ?? 255);
+				const isTransparent = alphas.every((a) => a === 0);
+				setTransparentCheck({ isTransparent, cornerAlphas: alphas });
+			} catch {
+				// ignore (some environments may block getImageData)
 			}
 
 			const blob = await new Promise<Blob>((resolve, reject) => {
@@ -295,31 +391,47 @@ export default function TextToPngRoute() {
 								value={text}
 								onChange={(e) => setText(e.currentTarget.value)}
 								rows={5}
-								className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+								className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base sm:text-sm"
 							/>
-							<div className="text-xs text-gray-600 dark:text-gray-300" style={{ fontFamily: selectedFamily, fontWeight }}>
+							<div className="text-xs text-gray-600 dark:text-gray-300" style={{ fontFamily: selectedFontFamily, fontWeight }}>
 								預覽：{(text.split("\n")[0] || " ").slice(0, 40)}
 							</div>
 						</div>
 
 						<div className="space-y-4">
-							<div className="grid grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<label className="block text-sm font-medium">文字顏色</label>
-									<input
-										type="color"
-										value={color}
-										onChange={(e) => setColor(e.currentTarget.value)}
-										className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
-									/>
-								</div>
+							<div className="rounded-md border border-gray-200 dark:border-gray-800 p-3">
+								<div className="flex flex-wrap items-center gap-4">
+									<div className="flex items-center gap-2">
+										<span className="text-sm font-medium">文字顏色</span>
+										<input
+											type="color"
+											value={color}
+											onChange={(e) => setColor(e.currentTarget.value)}
+											className="h-10 w-10 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
+											aria-label="文字顏色"
+										/>
+									</div>
 
+									<div className="flex items-center gap-2">
+										<span className="text-sm font-medium">邊框顏色</span>
+										<input
+											type="color"
+											value={borderColor}
+											onChange={(e) => setBorderColor(e.currentTarget.value)}
+											className="h-10 w-10 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
+											aria-label="邊框顏色"
+										/>
+									</div>
+								</div>
+							</div>
+
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								<div className="space-y-2">
 									<label className="block text-sm font-medium">粗細 (Weight)</label>
 									<select
 										value={fontWeight}
 										onChange={(e) => setFontWeight(Number(e.currentTarget.value))}
-										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base sm:text-sm"
 									>
 										{[100, 200, 300, 400, 500, 600, 700, 800, 900].map((w) => (
 											<option key={w} value={w}>
@@ -328,9 +440,7 @@ export default function TextToPngRoute() {
 										))}
 									</select>
 								</div>
-							</div>
 
-							<div className="grid grid-cols-2 gap-4">
 								<div className="space-y-2">
 									<label className="block text-sm font-medium">邊框粗細</label>
 									<input
@@ -339,19 +449,9 @@ export default function TextToPngRoute() {
 										step={1}
 										value={borderWidth}
 										onChange={(e) => setBorderWidth(Math.max(0, Number(e.currentTarget.value) || 0))}
-										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base sm:text-sm"
 									/>
 									<p className="text-xs text-gray-600 dark:text-gray-300">設 0 代表不要邊框</p>
-								</div>
-
-								<div className="space-y-2">
-									<label className="block text-sm font-medium">邊框顏色</label>
-									<input
-										type="color"
-										value={borderColor}
-										onChange={(e) => setBorderColor(e.currentTarget.value)}
-										className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
-									/>
 								</div>
 							</div>
 
@@ -393,6 +493,16 @@ export default function TextToPngRoute() {
 									手機上建議按「手機儲存/分享」；若瀏覽器不支援，會開新分頁，你可以長按圖片選「加入相片/儲存圖片」。
 								</p>
 							) : null}
+							{transparentCheck ? (
+								<p className="text-xs text-gray-600 dark:text-gray-300">
+									透明檢查：{transparentCheck.isTransparent ? "檔案背景為透明" : "檔案背景可能不是透明"}（角落 alpha: {transparentCheck.cornerAlphas.join(", ")}）
+								</p>
+							) : null}
+							{pngUrl ? (
+								<p className="text-xs text-gray-600 dark:text-gray-300">
+									注意：Google Photos 有機會在上傳/備份時把透明 PNG 扁平化成白底。若你需要保留透明，建議用「檔案」App 保留原始 PNG 檔，或直接貼到支援透明的編輯器/App。
+								</p>
+							) : null}
 						</div>
 					</div>
 
@@ -401,6 +511,14 @@ export default function TextToPngRoute() {
 							{error}
 						</div>
 					) : null}
+				</section>
+
+				<section className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+					<h2 className="text-sm font-medium">即時預覽</h2>
+					<p className="text-sm text-gray-600 dark:text-gray-300">你調整顏色/粗細/邊框時會立刻更新（預覽可能會等比例縮小以符合畫面）。</p>
+					<div className="overflow-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
+						<canvas ref={previewCanvasRef} style={{ maxWidth: "100%", height: "auto" }} />
+					</div>
 				</section>
 
 				<section className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
