@@ -11,6 +11,23 @@ const DEFAULT_FAMILY = "ui-sans-serif, system-ui, sans-serif";
 const PREVIEW_MAX_W = 900;
 const PREVIEW_MAX_H = 420;
 
+const PUBLIC_TTF_FONTS: Array<{ id: string; name: string; url: string }> = [
+	{ id: "public:ChenYuluoyan-2.0-Thin.ttf", name: "ChenYuluoyan 2.0 Thin", url: "/ChenYuluoyan-2.0-Thin.ttf" },
+	{ id: "public:ChenYuluoyan-Thin-Monospaced.ttf", name: "ChenYuluoyan Thin Monospaced", url: "/ChenYuluoyan-Thin-Monospaced.ttf" },
+];
+
+const DEFAULT_PUBLIC_FONT_ID = PUBLIC_TTF_FONTS[0]?.id ?? "";
+
+const PRESET_STROKE = "#2f343a";
+const COLOR_PRESETS: Array<{ name: string; fill: string; stroke: string }> = [
+	// Morandi-ish muted text colors; stroke is unified for a cleaner system
+	{ name: "霧藍", fill: "#6f86a6", stroke: PRESET_STROKE },
+	{ name: "霧綠", fill: "#7f8f87", stroke: PRESET_STROKE },
+	{ name: "玫瑰灰", fill: "#b08f8f", stroke: PRESET_STROKE },
+	{ name: "奶茶灰", fill: "#c6b3a1", stroke: PRESET_STROKE },
+	{ name: "薰衣草灰", fill: "#9c94a6", stroke: PRESET_STROKE },
+];
+
 export function meta({}: Route.MetaArgs) {
 	return [{ title: "Text to PNG" }];
 }
@@ -38,15 +55,21 @@ async function ensureFontLoaded(fontId: string, familyName: string): Promise<voi
 	}
 }
 
+async function ensurePublicFontLoaded(url: string, familyName: string): Promise<void> {
+	const fontFace = new FontFace(familyName, `url(${url})`);
+	await fontFace.load();
+	document.fonts.add(fontFace);
+}
+
 export default function TextToPngRoute() {
 	const [fonts, setFonts] = useState<StoredFontMeta[]>([]);
-	const [selectedFontId, setSelectedFontId] = useState<string>("");
+	const [selectedFontId, setSelectedFontId] = useState<string>(DEFAULT_PUBLIC_FONT_ID);
 	const [selectedFontFamily, setSelectedFontFamily] = useState<string>(DEFAULT_FAMILY);
 	const [text, setText] = useState<string>("在這裡輸入文字\n第二行");
-	const [color, setColor] = useState<string>("#000000");
+	const [color, setColor] = useState<string>(COLOR_PRESETS[0]?.fill ?? "#000000");
 	const [fontWeight, setFontWeight] = useState<number>(600);
-	const [borderWidth, setBorderWidth] = useState<number>(4);
-	const [borderColor, setBorderColor] = useState<string>("#ffffff");
+	const [borderWidth, setBorderWidth] = useState<number>(0);
+	const [borderColor, setBorderColor] = useState<string>(PRESET_STROKE);
 	const [error, setError] = useState<string>("");
 	const [pngUrl, setPngUrl] = useState<string>("");
 	const [transparentCheck, setTransparentCheck] = useState<null | { isTransparent: boolean; cornerAlphas: number[] }>(null);
@@ -106,7 +129,13 @@ export default function TextToPngRoute() {
 		if (existing) return existing.family;
 
 		const familyName = `UploadedFont_${id.replace(/[^a-zA-Z0-9_\-]/g, "_")}`;
-		await ensureFontLoaded(id, familyName);
+		if (id.startsWith("public:")) {
+			const url = PUBLIC_TTF_FONTS.find((f) => f.id === id)?.url;
+			if (!url) throw new Error("找不到內建字體檔案");
+			await ensurePublicFontLoaded(url, familyName);
+		} else {
+			await ensureFontLoaded(id, familyName);
+		}
 		loadedFontsRef.current.set(id, { id, family: familyName });
 		return familyName;
 	}
@@ -142,6 +171,13 @@ export default function TextToPngRoute() {
 			setError(e instanceof Error ? e.message : "字體載入失敗");
 		}
 	}
+
+	useEffect(() => {
+		if (!DEFAULT_PUBLIC_FONT_ID) return;
+		// Load the default bundled font on first mount so preview is correct immediately.
+		void handleSelectFont(DEFAULT_PUBLIC_FONT_ID);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	function drawPreview() {
 		if (typeof window === "undefined") return;
@@ -338,199 +374,208 @@ export default function TextToPngRoute() {
 		return `${base}.png`;
 	}, [selectedFontMeta]);
 
+	function applyColorPreset(preset: { fill: string; stroke: string }) {
+		setColor(preset.fill);
+		setBorderColor(preset.stroke);
+	}
+
 	return (
-		<main className="min-h-screen p-6">
-			<div className="mx-auto max-w-5xl space-y-6">
-				<header className="space-y-2">
-					<h1 className="text-2xl font-semibold">文字輸出 PNG</h1>
-					<p className="text-sm text-gray-600 dark:text-gray-300">
-						上傳 TTF 後可在下拉選單選擇字體，輸入文字並調整顏色/粗細/邊框，最後輸出成透明背景 PNG。
-					</p>
-				</header>
-
-				<section className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-4">
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div className="space-y-2">
-							<label className="block text-sm font-medium">上傳 TTF 字體</label>
-							<input
-								type="file"
-								accept=".ttf,font/ttf"
-								onChange={(e) => handleUpload(e.currentTarget.files?.[0] ?? null)}
-								className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium hover:file:bg-gray-200 dark:file:bg-gray-800 dark:hover:file:bg-gray-700"
-							/>
-							<p className="text-xs text-gray-600 dark:text-gray-300">字體會保存在此瀏覽器（IndexedDB），下次可直接選用。</p>
-						</div>
-
-						<div className="space-y-2">
-							<label className="block text-sm font-medium">選擇字體</label>
-							<select
-								value={selectedFontId}
-								onChange={(e) => handleSelectFont(e.currentTarget.value)}
-								disabled={isLoadingFonts}
-								className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
-							>
-								<option value="">系統預設字體</option>
-								{fonts.map((f) => (
-									<option key={f.id} value={f.id}>
-										{f.name} ({formatBytes(f.size)})
-									</option>
-								))}
-							</select>
-							{isLoadingFonts ? (
-								<p className="text-xs text-gray-600 dark:text-gray-300">字體載入中…</p>
-							) : fonts.length === 0 ? (
-								<p className="text-xs text-gray-600 dark:text-gray-300">尚未上傳字體（可先用系統預設字體）。</p>
-							) : null}
-						</div>
+		<main className="min-h-screen p-3 sm:p-6">
+			<div className="mx-auto max-w-5xl">
+				<div className="flex items-center justify-between gap-3">
+					<h1 className="text-lg md:text-2xl font-semibold tracking-tight">文字圖片</h1>
+					<div
+						className="rounded-full border border-gray-200 dark:border-gray-800 px-2.5 py-1 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap"
+						title={
+							transparentCheck
+								? `角落 alpha: ${transparentCheck.cornerAlphas.join(", ")}`
+								: "輸出/預覽後會顯示透明檢查"
+						}
+					>
+						透明 {transparentCheck ? (transparentCheck.isTransparent ? "OK" : "? ") : "…"}
 					</div>
+				</div>
 
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div className="space-y-2">
-							<label className="block text-sm font-medium">文字內容</label>
-							<textarea
-								value={text}
-								onChange={(e) => setText(e.currentTarget.value)}
-								rows={5}
-								className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base sm:text-sm"
-							/>
-							<div className="text-xs text-gray-600 dark:text-gray-300" style={{ fontFamily: selectedFontFamily, fontWeight }}>
-								預覽：{(text.split("\n")[0] || " ").slice(0, 40)}
-							</div>
+				<div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+					<section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 md:p-4 order-1 md:order-2">
+						<div className="flex items-center justify-between">
+							<div className="text-xs font-medium text-gray-700 dark:text-gray-200">即時預覽</div>
+							<div className="text-xs text-gray-600 dark:text-gray-300">調整會即時更新</div>
+						</div>
+						<div className="mt-2 overflow-auto max-h-[240px] md:max-h-[420px] rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-2">
+							<canvas ref={previewCanvasRef} style={{ maxWidth: "100%", height: "auto" }} />
 						</div>
 
-						<div className="space-y-4">
-							<div className="rounded-md border border-gray-200 dark:border-gray-800 p-3">
-								<div className="flex flex-wrap items-center gap-4">
-									<div className="flex items-center gap-2">
-										<span className="text-sm font-medium">文字顏色</span>
-										<input
-											type="color"
-											value={color}
-											onChange={(e) => setColor(e.currentTarget.value)}
-											className="h-10 w-10 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
-											aria-label="文字顏色"
-										/>
-									</div>
+						<div className="mt-3 flex items-center gap-2">
+							<button
+								type="button"
+								onClick={generatePng}
+								disabled={isGenerating}
+								className="rounded-md bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 px-4 py-2 text-[16px] font-medium disabled:opacity-60"
+							>
+								{isGenerating ? "輸出中…" : "輸出 PNG"}
+							</button>
 
-									<div className="flex items-center gap-2">
-										<span className="text-sm font-medium">邊框顏色</span>
-										<input
-											type="color"
-											value={borderColor}
-											onChange={(e) => setBorderColor(e.currentTarget.value)}
-											className="h-10 w-10 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
-											aria-label="邊框顏色"
-										/>
-									</div>
+							<button
+								type="button"
+								onClick={() => {
+									if (pngUrl) window.open(pngUrl, "_blank", "noopener,noreferrer");
+								}}
+								disabled={!pngUrl}
+								className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-[16px] font-medium disabled:opacity-50"
+								title="開新分頁預覽/長按存圖"
+							>
+								開啟
+							</button>
+
+							<button
+								type="button"
+								onClick={shareToPhone}
+								disabled={!pngUrl}
+								className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-[16px] font-medium disabled:opacity-50"
+							>
+								手機分享
+							</button>
+						</div>
+						{pngUrl ? (
+							<div className="mt-2 text-xs text-gray-600 dark:text-gray-300">iPhone：用「手機分享」最省步驟；Google Photos 可能把透明變白底。</div>
+						) : (
+							<div className="mt-2 text-xs text-gray-600 dark:text-gray-300">先按「輸出 PNG」才可下載/分享。</div>
+						)}
+					</section>
+
+					<section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 md:p-4 order-2 md:order-1">
+						<div className="space-y-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+								<div className="space-y-1">
+									<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">上傳 TTF</label>
+									<input
+										type="file"
+										accept=".ttf,font/ttf"
+										onChange={(e) => handleUpload(e.currentTarget.files?.[0] ?? null)}
+										className="block w-full text-[16px] file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-[16px] file:font-medium hover:file:bg-gray-200 dark:file:bg-gray-800 dark:hover:file:bg-gray-700"
+									/>
 								</div>
-							</div>
-
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								<div className="space-y-2">
-									<label className="block text-sm font-medium">粗細 (Weight)</label>
+								<div className="space-y-1">
+									<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">字體</label>
 									<select
-										value={fontWeight}
-										onChange={(e) => setFontWeight(Number(e.currentTarget.value))}
-										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base sm:text-sm"
+										value={selectedFontId}
+										onChange={(e) => handleSelectFont(e.currentTarget.value)}
+										disabled={isLoadingFonts}
+										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-2 py-2 text-[16px]"
 									>
-										{[100, 200, 300, 400, 500, 600, 700, 800, 900].map((w) => (
-											<option key={w} value={w}>
-												{w}
+										<option value="">系統預設</option>
+										{PUBLIC_TTF_FONTS.map((f) => (
+											<option key={f.id} value={f.id}>
+												{f.name}
+											</option>
+										))}
+										{fonts.map((f) => (
+											<option key={f.id} value={f.id}>
+												{f.name}
 											</option>
 										))}
 									</select>
 								</div>
+							</div>
 
-								<div className="space-y-2">
-									<label className="block text-sm font-medium">邊框粗細</label>
-									<input
-										type="number"
-										min={0}
-										step={1}
-										value={borderWidth}
-										onChange={(e) => setBorderWidth(Math.max(0, Number(e.currentTarget.value) || 0))}
-										className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base sm:text-sm"
-									/>
-									<p className="text-xs text-gray-600 dark:text-gray-300">設 0 代表不要邊框</p>
+							<div className="space-y-1">
+								<label className="block text-xs font-medium text-gray-700 dark:text-gray-200">文字</label>
+								<textarea
+									value={text}
+									onChange={(e) => setText(e.currentTarget.value)}
+									rows={3}
+									className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-2 py-2 text-[16px]"
+								/>
+							</div>
+
+							<div className="rounded-lg border border-gray-200 dark:border-gray-800 p-3">
+								<div className="flex items-center justify-between">
+									<div className="text-xs font-medium text-gray-700 dark:text-gray-200">樣式</div>
+									<div className="flex items-center gap-2">
+										<input
+											type="color"
+											value={color}
+											onChange={(e) => setColor(e.currentTarget.value)}
+											className="h-9 w-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
+											title="文字顏色"
+										/>
+										<input
+											type="color"
+											value={borderColor}
+											onChange={(e) => setBorderColor(e.currentTarget.value)}
+											className="h-9 w-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950"
+											title="邊框顏色"
+										/>
+									</div>
+								</div>
+
+								<div className="mt-3">
+									<div className="flex items-center justify-between">
+										<span className="text-xs font-medium text-gray-700 dark:text-gray-200">預設配色</span>
+										<span className="text-xs text-gray-600 dark:text-gray-300">點一下套用</span>
+									</div>
+									<div className="mt-2 flex flex-wrap gap-2">
+										{COLOR_PRESETS.map((p) => (
+											<button
+												key={p.name}
+												type="button"
+												onClick={() => applyColorPreset(p)}
+												className="group rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-2 py-2"
+												title={p.name}
+												aria-label={`套用配色：${p.name}`}
+											>
+												<span className="flex items-center gap-1">
+													<span className="h-5 w-5 rounded border border-gray-300 dark:border-gray-700" style={{ backgroundColor: p.fill }} />
+													<span className="h-5 w-5 rounded border border-gray-300 dark:border-gray-700" style={{ backgroundColor: p.stroke }} />
+												</span>
+											</button>
+										))}
+									</div>
+								</div>
+
+								<div className="mt-3 space-y-2">
+									<div className="flex items-center gap-2">
+										<span className="text-xs w-10 text-gray-600 dark:text-gray-300">字重</span>
+										<input
+											type="range"
+											min={100}
+											max={900}
+											step={100}
+											value={fontWeight}
+											onChange={(e) => setFontWeight(Number(e.currentTarget.value))}
+											className="w-full accent-gray-900 dark:accent-gray-100"
+										/>
+										<span className="rounded-md border border-gray-200 dark:border-gray-800 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 min-w-[3rem] text-center">
+											{fontWeight}
+										</span>
+									</div>
+									<div className="flex items-center gap-2">
+										<span className="text-xs w-10 text-gray-600 dark:text-gray-300">邊框</span>
+										<input
+											type="range"
+											min={0}
+											max={10}
+											step={1}
+											value={borderWidth}
+											onChange={(e) => setBorderWidth(Number(e.currentTarget.value))}
+											className="w-full accent-gray-900 dark:accent-gray-100"
+										/>
+										<span className="rounded-md border border-gray-200 dark:border-gray-800 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 min-w-[3rem] text-center">
+											{borderWidth}
+										</span>
+									</div>
 								</div>
 							</div>
 
-							<div className="flex items-center gap-3">
-								<button
-									type="button"
-									onClick={generatePng}
-									disabled={isGenerating}
-									className="rounded-md bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 px-4 py-2 text-sm font-medium disabled:opacity-60"
-								>
-									{isGenerating ? "產生中…" : "輸出 PNG"}
-								</button>
-
-								{pngUrl ? (
-									<a
-										href={pngUrl}
-										download={downloadName}
-										className="text-sm font-medium text-gray-900 dark:text-gray-100 underline"
-									>
-										下載 PNG
-									</a>
-								) : null}
-
-								{pngUrl ? (
-									<button
-										type="button"
-										onClick={shareToPhone}
-										className="text-sm font-medium text-gray-900 dark:text-gray-100 underline"
-									>
-										手機儲存/分享
-									</button>
-								) : null}
-							</div>
-							<p className="text-xs text-gray-600 dark:text-gray-300">
-								PNG 背景是透明的；如果你的預覽程式看起來像白底，通常只是預覽顯示方式，貼到支援透明的軟體會保留去背。
-							</p>
-							{pngUrl ? (
-								<p className="text-xs text-gray-600 dark:text-gray-300">
-									手機上建議按「手機儲存/分享」；若瀏覽器不支援，會開新分頁，你可以長按圖片選「加入相片/儲存圖片」。
-								</p>
-							) : null}
-							{transparentCheck ? (
-								<p className="text-xs text-gray-600 dark:text-gray-300">
-									透明檢查：{transparentCheck.isTransparent ? "檔案背景為透明" : "檔案背景可能不是透明"}（角落 alpha: {transparentCheck.cornerAlphas.join(", ")}）
-								</p>
-							) : null}
-							{pngUrl ? (
-								<p className="text-xs text-gray-600 dark:text-gray-300">
-									注意：Google Photos 有機會在上傳/備份時把透明 PNG 扁平化成白底。若你需要保留透明，建議用「檔案」App 保留原始 PNG 檔，或直接貼到支援透明的編輯器/App。
-								</p>
+							{error ? (
+								<div className="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-200">
+									{error}
+								</div>
 							) : null}
 						</div>
-					</div>
-
-					{error ? (
-						<div className="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-200">
-							{error}
-						</div>
-					) : null}
-				</section>
-
-				<section className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
-					<h2 className="text-sm font-medium">即時預覽</h2>
-					<p className="text-sm text-gray-600 dark:text-gray-300">你調整顏色/粗細/邊框時會立刻更新（預覽可能會等比例縮小以符合畫面）。</p>
-					<div className="overflow-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
-						<canvas ref={previewCanvasRef} style={{ maxWidth: "100%", height: "auto" }} />
-					</div>
-				</section>
-
-				<section className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
-					<h2 className="text-sm font-medium">輸出預覽</h2>
-					{pngUrl ? (
-						<div className="overflow-auto">
-							<img src={pngUrl} alt="PNG preview" className="max-w-full" />
-						</div>
-					) : (
-						<p className="text-sm text-gray-600 dark:text-gray-300">按「輸出 PNG」後會在這裡顯示預覽。</p>
-					)}
-				</section>
+					</section>
+				</div>
 			</div>
 		</main>
 	);
