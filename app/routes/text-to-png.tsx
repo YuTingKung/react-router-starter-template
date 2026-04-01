@@ -13,18 +13,20 @@ type LoadedFont = {
 const DEFAULT_FAMILY = "ui-sans-serif, system-ui, sans-serif";
 const PREVIEW_MAX_W = 900;
 const PREVIEW_MAX_H = 420;
+const FONT_SIZE = 96;
+const LINE_HEIGHT = Math.ceil(FONT_SIZE * 1.25);
 
 const PUBLIC_TTF_FONTS: Array<{ id: string; name: string; url: string }> = publicTtfFonts;
 const DEFAULT_PUBLIC_FONT_ID = PUBLIC_TTF_FONTS[0]?.id ?? "";
 
-const PRESET_STROKE = "#2f343a";
+const PRESET_STROKE = "#df7470";
 const COLOR_PRESETS: Array<{ name: string; fill: string; stroke: string }> = [
 	// Morandi-ish muted text colors; stroke is unified for a cleaner system
-	{ name: "霧藍", fill: "#6f86a6", stroke: PRESET_STROKE },
-	{ name: "霧綠", fill: "#7f8f87", stroke: PRESET_STROKE },
-	{ name: "玫瑰灰", fill: "#b08f8f", stroke: PRESET_STROKE },
-	{ name: "奶茶灰", fill: "#c6b3a1", stroke: PRESET_STROKE },
-	{ name: "薰衣草灰", fill: "#9c94a6", stroke: PRESET_STROKE },
+	{ name: "霧藍", fill: "#6f86a6", stroke: "#feffe4" },
+	{ name: "淺紅", fill: "#df7470", stroke: "#df7470" },
+	{ name: "玫瑰灰", fill: "#b08f8f", stroke: "#feffe4" },
+	{ name: "奶茶灰", fill: "#c6b3a1", stroke: "#feffe4" },
+	{ name: "淡黃", fill: "#feffe4", stroke: "#df7470" },
 ];
 
 export function meta({}: Route.MetaArgs) {
@@ -58,6 +60,102 @@ async function ensurePublicFontLoaded(url: string, familyName: string): Promise<
 	const fontFace = new FontFace(familyName, `url(${url})`);
 	await fontFace.load();
 	document.fonts.add(fontFace);
+}
+
+function usesSingleFontFile(fontId: string): boolean {
+	return fontId !== "";
+}
+
+function getCanvasFontWeight(fontId: string, fontWeight: number): number {
+	return usesSingleFontFile(fontId) ? 400 : fontWeight;
+}
+
+function getSyntheticWeightWidth(fontId: string, fontWeight: number): number {
+	if (!usesSingleFontFile(fontId)) return 0;
+	return Math.max(0, (fontWeight - 100) / 160);
+}
+
+function getTextPadding(borderWidth: number, syntheticWeightWidth: number): number {
+	return 24 + Math.max(0, borderWidth) + Math.ceil(syntheticWeightWidth) + 2;
+}
+
+function getLines(text: string): string[] {
+	return (text || "").split("\n").map((line) => line.replace(/\r/g, ""));
+}
+
+function configureTextContext(
+	ctx: CanvasRenderingContext2D,
+	fontFamily: string,
+	fontId: string,
+	fontWeight: number,
+	fillColor: string
+) {
+	ctx.font = `${getCanvasFontWeight(fontId, fontWeight)} ${FONT_SIZE}px ${fontFamily}`;
+	ctx.textBaseline = "top";
+	ctx.lineJoin = "round";
+	ctx.lineCap = "round";
+	ctx.fillStyle = fillColor;
+	ctx.miterLimit = 2;
+}
+
+function measureTextBlock(
+	ctx: CanvasRenderingContext2D,
+	lines: string[],
+	fontFamily: string,
+	fontId: string,
+	fontWeight: number,
+	fillColor: string,
+	borderWidth: number
+) {
+	configureTextContext(ctx, fontFamily, fontId, fontWeight, fillColor);
+	const syntheticWeightWidth = getSyntheticWeightWidth(fontId, fontWeight);
+	let maxWidth = 1;
+	for (const line of lines) {
+		const metrics = ctx.measureText(line || " ");
+		maxWidth = Math.max(maxWidth, metrics.width + syntheticWeightWidth);
+	}
+	const padding = getTextPadding(borderWidth, syntheticWeightWidth);
+	return {
+		padding,
+		syntheticWeightWidth,
+		width: Math.ceil(maxWidth + padding * 2),
+		height: Math.ceil(lines.length * LINE_HEIGHT + padding * 2),
+	};
+}
+
+function drawTextBlock(
+	ctx: CanvasRenderingContext2D,
+	lines: string[],
+	fontFamily: string,
+	fontId: string,
+	fontWeight: number,
+	fillColor: string,
+	borderWidth: number,
+	borderColor: string,
+	padding: number
+) {
+	configureTextContext(ctx, fontFamily, fontId, fontWeight, fillColor);
+	const syntheticWeightWidth = getSyntheticWeightWidth(fontId, fontWeight);
+
+	for (let i = 0; i < lines.length; i++) {
+		const x = padding;
+		const y = padding + i * LINE_HEIGHT;
+		const line = lines[i] || " ";
+
+		if (borderWidth > 0) {
+			ctx.strokeStyle = borderColor;
+			ctx.lineWidth = borderWidth + syntheticWeightWidth;
+			ctx.strokeText(line, x, y);
+		}
+
+		if (syntheticWeightWidth > 0) {
+			ctx.strokeStyle = fillColor;
+			ctx.lineWidth = syntheticWeightWidth;
+			ctx.strokeText(line, x, y);
+		}
+
+		ctx.fillText(line, x, y);
+	}
 }
 
 export default function TextToPngRoute() {
@@ -186,24 +284,10 @@ export default function TextToPngRoute() {
 		const ctx = canvas.getContext("2d", { alpha: true });
 		if (!ctx) return;
 
-		const lines = (text || "").split("\n").map((l) => l.replace(/\r/g, ""));
-		const fontSize = 96;
-		const lineHeight = Math.ceil(fontSize * 1.25);
-		const padding = 24 + Math.max(0, borderWidth);
-
-		ctx.font = `${fontWeight} ${fontSize}px ${selectedFontFamily}`;
-		ctx.textBaseline = "top";
-		ctx.lineJoin = "round";
-		ctx.lineCap = "round";
-
-		let maxWidth = 1;
-		for (const line of lines) {
-			const m = ctx.measureText(line || " ");
-			maxWidth = Math.max(maxWidth, m.width);
-		}
-
-		const baseW = Math.ceil(maxWidth + padding * 2);
-		const baseH = Math.ceil(lines.length * lineHeight + padding * 2);
+		const lines = getLines(text);
+		const measured = measureTextBlock(ctx, lines, selectedFontFamily, selectedFontId, fontWeight, color, borderWidth);
+		const baseW = measured.width;
+		const baseH = measured.height;
 		const scale = Math.min(1, PREVIEW_MAX_W / Math.max(1, baseW), PREVIEW_MAX_H / Math.max(1, baseH));
 
 		canvas.width = Math.max(1, Math.ceil(baseW * scale));
@@ -213,27 +297,7 @@ export default function TextToPngRoute() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
-		ctx.font = `${fontWeight} ${fontSize}px ${selectedFontFamily}`;
-		ctx.textBaseline = "top";
-		ctx.lineJoin = "round";
-		ctx.lineCap = "round";
-		ctx.fillStyle = color;
-
-		if (borderWidth > 0) {
-			ctx.strokeStyle = borderColor;
-			ctx.lineWidth = borderWidth;
-		}
-
-		for (let i = 0; i < lines.length; i++) {
-			const x = padding;
-			const y = padding + i * lineHeight;
-			const line = lines[i] || " ";
-
-			if (borderWidth > 0) {
-				ctx.strokeText(line, x, y);
-			}
-			ctx.fillText(line, x, y);
-		}
+		drawTextBlock(ctx, lines, selectedFontFamily, selectedFontId, fontWeight, color, borderWidth, borderColor, measured.padding);
 	}
 
 	useEffect(() => {
@@ -254,57 +318,18 @@ export default function TextToPngRoute() {
 			}
 
 			const family = selectedFontId ? await loadFontIfNeeded(selectedFontId) : DEFAULT_FAMILY;
-
-			const lines = (text || "")
-				.split("\n")
-				.map((l) => l.replace(/\r/g, ""));
-
-			const fontSize = 96;
-			const lineHeight = Math.ceil(fontSize * 1.25);
-			const padding = 24 + Math.max(0, borderWidth);
+			const lines = getLines(text);
 
 			const canvas = document.createElement("canvas");
 			const ctx = canvas.getContext("2d", { alpha: true });
 			if (!ctx) throw new Error("無法獲取 Canvas 上下文");
 
-			ctx.font = `${fontWeight} ${fontSize}px ${family}`;
-			ctx.textBaseline = "top";
-			ctx.lineJoin = "round";
-			ctx.lineCap = "round";
-
-			let maxWidth = 1;
-			for (const line of lines) {
-				const m = ctx.measureText(line || " ");
-				maxWidth = Math.max(maxWidth, m.width);
-			}
-
-			canvas.width = Math.ceil(maxWidth + padding * 2);
-			canvas.height = Math.ceil(lines.length * lineHeight + padding * 2);
+			const measured = measureTextBlock(ctx, lines, family, selectedFontId, fontWeight, color, borderWidth);
+			canvas.width = measured.width;
+			canvas.height = measured.height;
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-			// Must reset font after resizing canvas
-			ctx.font = `${fontWeight} ${fontSize}px ${family}`;
-			ctx.textBaseline = "top";
-			ctx.lineJoin = "round";
-			ctx.lineCap = "round";
-
-			ctx.fillStyle = color;
-
-			if (borderWidth > 0) {
-				ctx.strokeStyle = borderColor;
-				ctx.lineWidth = borderWidth;
-			}
-
-			for (let i = 0; i < lines.length; i++) {
-				const x = padding;
-				const y = padding + i * lineHeight;
-				const line = lines[i] || " ";
-
-				if (borderWidth > 0) {
-					ctx.strokeText(line, x, y);
-				}
-				ctx.fillText(line, x, y);
-			}
+			drawTextBlock(ctx, lines, family, selectedFontId, fontWeight, color, borderWidth, borderColor, measured.padding);
 
 			// Transparency sanity check: corners should be fully transparent (alpha=0)
 			try {
@@ -579,6 +604,7 @@ export default function TextToPngRoute() {
 											value={fontWeight}
 											onChange={(e) => setFontWeight(Number(e.currentTarget.value))}
 											className="w-full accent-gray-900 dark:accent-gray-100"
+											title={selectedFontId ? "單一 TTF 會用連續粗細模擬，1 到 9 都會有差異" : "系統字型使用原生字重"}
 										/>
 										<span className="rounded-md border border-gray-200 dark:border-gray-800 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 min-w-[3rem] text-center">
 											{Math.round(fontWeight / 100)}
