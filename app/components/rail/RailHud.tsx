@@ -26,24 +26,24 @@ export default function RailHud({
 }: RailHudProps) {
 	return (
 		<div className="rail-game-card__hud">
-			<div className="rail-stat">
+			<div className="rail-stat rail-stat--inline">
 				<span className="rail-stat__label">分數</span>
 				<strong>{score}</strong>
 			</div>
 
-			<div className="rail-stat">
+			<div className="rail-stat rail-stat--inline">
 				<span className="rail-stat__label">最高分</span>
 				<strong>{highScore}</strong>
 			</div>
 
-			<div className="rail-stat rail-stat--timer">
+			<div className="rail-stat rail-stat--inline rail-stat--timer">
 				<span className="rail-stat__label">計時</span>
 				<strong>{elapsedLabel}</strong>
 				<span className="rail-stat__sub">最佳時間 {bestTimeLabel}</span>
 			</div>
 
 			<div className="rail-stat rail-stat--difficulty">
-				<div>
+				<div className="rail-stat__inline-group">
 					<span className="rail-stat__label">難度</span>
 					<strong style={{ color: COLORS[difficulty] }}>{LABELS[difficulty]}</strong>
 				</div>
@@ -58,7 +58,7 @@ export default function RailHud({
 				/>
 			</div>
 
-			<div className="rail-stat rail-stat--compact">
+			<div className="rail-stat rail-stat--inline rail-stat--compact">
 				<span className="rail-stat__label">剩餘軌道</span>
 				<strong>{remainingTracks}</strong>
 				<button type="button" className="rail-sound-toggle" onClick={onToggleSound}>

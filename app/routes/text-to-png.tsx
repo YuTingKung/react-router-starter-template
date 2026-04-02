@@ -1,8 +1,8 @@
 /// <reference path="../types/virtual-public-ttf-fonts.d.ts" />
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
 import type { Route } from "./+types/text-to-png";
+import FeaturePageNav from "../components/navigation/FeaturePageNav";
 import { getStoredFontData, listStoredFonts, saveTtfFont, type StoredFontMeta } from "../utils/fontStorage";
 import { publicTtfFonts } from "virtual:public-ttf-fonts";
 
@@ -421,12 +421,7 @@ export default function TextToPngRoute() {
 							透明 {transparentCheck ? (transparentCheck.isTransparent ? "OK" : "? ") : "…"}
 						</div>
 					</div>
-					<Link
-						to="/"
-						className="rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-100 whitespace-nowrap"
-					>
-						回到首頁
-					</Link>
+					<FeaturePageNav current="/text-to-png" />
 				</div>
 
 				<div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 md:auto-rows-min">

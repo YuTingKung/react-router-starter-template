@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
 import { analyzeInvoice } from '../services/invoiceService';
 import type { InvoiceResult } from '../services/invoiceService';
 import InvoiceUpload from '../components/invoice/InvoiceUpload';
 import InvoiceResultComponent from '../components/invoice/InvoiceResult';
 import InvoiceTips from '../components/invoice/InvoiceTips';
+import FeaturePageNav from '../components/navigation/FeaturePageNav';
 import '../styles/invoice.css';
 
 export default function InvoiceRecognition() {
@@ -92,24 +92,7 @@ export default function InvoiceRecognition() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '38px',
-              padding: '0 16px',
-              borderRadius: '999px',
-              border: '1px solid rgba(255,255,255,0.14)',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#f3f6ff',
-              textDecoration: 'none',
-              fontWeight: 700,
-            }}
-          >
-            回到首頁
-          </Link>
+          <FeaturePageNav current="/invoice" />
           <div className="badge">● AI POWERED</div>
         </div>
       </header>

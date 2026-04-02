@@ -79,32 +79,7 @@
 
 .rail-page__nav {
 	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
 	justify-content: flex-end;
-}
-
-.rail-page__nav a {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 42px;
-	padding: 0 16px;
-	border-radius: 999px;
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	background: rgba(255, 255, 255, 0.05);
-	color: #f7f2e9;
-	text-decoration: none;
-	transition:
-		transform 0.18s ease,
-		background 0.18s ease,
-		border-color 0.18s ease;
-}
-
-.rail-page__nav a:hover {
-	transform: translateY(-1px);
-	background: rgba(230, 126, 34, 0.18);
-	border-color: rgba(230, 126, 34, 0.5);
 }
 
 .rail-page__content {
@@ -148,67 +123,81 @@
 }
 
 .rail-game-card__hud {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-	gap: 12px;
-	padding: 16px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
 	background: rgba(0, 0, 0, 0.44);
 	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .rail-stat {
 	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	gap: 4px;
-	padding: 12px 14px;
-	min-height: 82px;
-	border-radius: 18px;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	min-height: 0;
+	border-radius: 14px;
 	background: rgba(255, 255, 255, 0.04);
 	border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.rail-stat--inline {
+	flex-direction: row;
+	justify-content: flex-start;
+	flex-wrap: wrap;
+}
+
 .rail-stat__label {
-	font-size: 0.78rem;
-	letter-spacing: 0.08em;
+	font-size: 0.68rem;
+	letter-spacing: 0.06em;
 	text-transform: uppercase;
 	color: rgba(244, 241, 234, 0.56);
 }
 
 .rail-stat__sub {
-	font-size: 0.84rem;
+	font-size: 0.74rem;
 	color: rgba(244, 241, 234, 0.62);
 }
 
 .rail-stat strong {
-	font-size: 1.4rem;
+	font-size: 1rem;
 	line-height: 1;
 }
 
 .rail-stat--difficulty {
-	gap: 10px;
+	gap: 8px;
+	padding-right: 12px;
 }
 
 .rail-stat--difficulty input {
-	width: 100%;
+	width: 92px;
 	accent-color: #e67e22;
 	cursor: pointer;
 }
 
+.rail-stat__inline-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .rail-stat--compact {
-	justify-content: space-between;
+	gap: 10px;
 }
 
 .rail-stat--timer {
-	gap: 6px;
+	gap: 7px;
 }
 
 .rail-sound-toggle {
-	padding: 8px 10px;
+	padding: 6px 9px;
 	border-radius: 999px;
 	border: 1px solid rgba(255, 255, 255, 0.12);
 	background: rgba(255, 255, 255, 0.07);
 	color: #f7f2e9;
+	font-size: 0.78rem;
 	font-weight: 700;
 	cursor: pointer;
 }
@@ -387,7 +376,7 @@
 	}
 
 	.rail-game-card__hud {
-		grid-template-columns: 1fr;
+		padding: 10px;
 	}
 
 	.rail-game-card__board,

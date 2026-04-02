@@ -1,7 +1,7 @@
 export type Difficulty = 1 | 2 | 3;
 export type ItemType = "wood" | "stone" | "track";
 export type ResourceType = "tree" | "rock";
-export type OverlayState = "none" | "game-over" | "victory";
+export type OverlayState = "start" | "none" | "game-over" | "victory";
 
 export type PlayerState = {
 	x: number;

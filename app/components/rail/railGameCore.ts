@@ -11,9 +11,9 @@ export const INITIAL_TRACKS: TrackTile[] = [
 ];
 
 export const SPEEDS: Record<Difficulty, number> = {
-	1: 1 / 10000,
-	2: 1 / 4000,
-	3: 1 / 1500,
+	1: 1 / 14000,
+	2: 1 / 5500,
+	3: 1 / 2200,
 };
 
 export const LABELS: Record<Difficulty, string> = {

@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import FeaturePageNav from "../components/navigation/FeaturePageNav";
 import RailGame from "../components/rail/RailGame";
 import "../styles/rail.css";
 
@@ -23,11 +23,9 @@ export default function RailRoute() {
 							一邊開路、一邊補給，讓列車穿過森林工區並安全駛進終點站。
 						</p>
 					</div>
-					<nav className="rail-page__nav" aria-label="功能頁面">
-						<Link to="/">首頁</Link>
-						<Link to="/invoice">發票辨識</Link>
-						<Link to="/text-to-png">文字圖片</Link>
-					</nav>
+					<div className="rail-page__nav">
+						<FeaturePageNav current="/rail" />
+					</div>
 				</header>
 
 				<div className="rail-page__content">

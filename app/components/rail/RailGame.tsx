@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import RailCanvas from "./RailCanvas";
 import RailHud from "./RailHud";
 import RailJoystick from "./RailJoystick";
-import { createResetState, drawGame, getRemainingTracks, tryMovePlayer, updateGameState } from "./railGameCore";
+import { WIN_DISTANCE, createResetState, drawGame, getRemainingTracks, tryMovePlayer, updateGameState } from "./railGameCore";
 import { useRailAudio } from "./useRailAudio";
 import type { Difficulty, GameState, OverlayState } from "./railGameTypes";
 
@@ -23,6 +23,7 @@ export default function RailGame() {
 	const animationFrameRef = useRef<number | null>(null);
 	const moveIntervalRef = useRef<number | null>(null);
 	const lastFrameTimeRef = useRef<number | null>(null);
+	const overlayRef = useRef<OverlayState>("start");
 	const difficultyRef = useRef<Difficulty>(1);
 	const moveDirRef = useRef({ x: 0, y: 0 });
 	const gameStateRef = useRef<GameState>(createResetState());
@@ -33,7 +34,7 @@ export default function RailGame() {
 	const [difficulty, setDifficulty] = useState<Difficulty>(1);
 	const [score, setScore] = useState(0);
 	const [remainingTracks, setRemainingTracks] = useState(WIN_DISTANCE);
-	const [overlay, setOverlay] = useState<OverlayState>("none");
+	const [overlay, setOverlay] = useState<OverlayState>("start");
 	const [isClient, setIsClient] = useState(false);
 	const [elapsedMs, setElapsedMs] = useState(0);
 	const [highScore, setHighScore] = useState(0);
@@ -85,9 +86,17 @@ export default function RailGame() {
 		setScore(nextState.score);
 		setRemainingTracks(getRemainingTracks(nextState));
 		setElapsedMs(0);
-		setOverlay("none");
+		overlayRef.current = "start";
+		setOverlay("start");
 		moveDirRef.current = { x: 0, y: 0 };
 		play("reset");
+	}
+
+	function startGame() {
+		void ensureContext();
+		lastFrameTimeRef.current = null;
+		overlayRef.current = "none";
+		setOverlay("none");
 	}
 
 	useEffect(() => {
@@ -111,6 +120,10 @@ export default function RailGame() {
 	}, [difficulty]);
 
 	useEffect(() => {
+		overlayRef.current = overlay;
+	}, [overlay]);
+
+	useEffect(() => {
 		const resize = () => {
 			const canvas = canvasRef.current;
 			if (!canvas) return;
@@ -121,6 +134,16 @@ export default function RailGame() {
 		};
 
 		const handleKeyDown = (event: KeyboardEvent) => {
+			if (overlayRef.current === "start") {
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					startGame();
+				}
+				return;
+			}
+
+			if (overlayRef.current !== "none") return;
+
 			let nextX = gameStateRef.current.player.x;
 			let nextY = gameStateRef.current.player.y;
 
@@ -142,7 +165,7 @@ export default function RailGame() {
 		resize();
 
 		moveIntervalRef.current = window.setInterval(() => {
-			if (moveDirRef.current.x !== 0 || moveDirRef.current.y !== 0) {
+			if (overlayRef.current === "none" && (moveDirRef.current.x !== 0 || moveDirRef.current.y !== 0)) {
 				tryMovePlayer(
 					gameStateRef.current,
 					gameStateRef.current.player.x + moveDirRef.current.x,
@@ -157,7 +180,7 @@ export default function RailGame() {
 			lastFrameTimeRef.current = timestamp;
 
 			const state = gameStateRef.current;
-			if (!state.isGameOver) {
+			if (overlayRef.current === "none" && !state.isGameOver) {
 				elapsedMsRef.current += deltaMs;
 				const nextDisplay = Math.floor(elapsedMsRef.current / 100);
 				if (nextDisplay !== elapsedDisplayRef.current) {
@@ -166,15 +189,18 @@ export default function RailGame() {
 				}
 			}
 
-			const nextOverlay = updateGameState(state, difficultyRef.current, deltaMs, play);
-			if (nextOverlay !== "none") {
-				setOverlay(nextOverlay);
-				persistHighScore(state.score);
-				if (nextOverlay === "victory") {
-					persistBestTime(elapsedMsRef.current);
+			if (overlayRef.current === "none") {
+				const nextOverlay = updateGameState(state, difficultyRef.current, deltaMs, play);
+				if (nextOverlay !== "none") {
+					overlayRef.current = nextOverlay;
+					setOverlay(nextOverlay);
+					persistHighScore(state.score);
+					if (nextOverlay === "victory") {
+						persistBestTime(elapsedMsRef.current);
+					}
+				} else if (state.score > highScore) {
+					persistHighScore(state.score);
 				}
-			} else if (state.score > highScore) {
-				persistHighScore(state.score);
 			}
 
 			syncHud(state);
@@ -216,6 +242,7 @@ export default function RailGame() {
 				canvasRef={canvasRef}
 				overlay={overlay}
 				elapsedLabel={formatDuration(elapsedMs)}
+				onStart={startGame}
 				onReset={resetGame}
 			/>
 
