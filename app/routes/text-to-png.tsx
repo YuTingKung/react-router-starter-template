@@ -1,6 +1,7 @@
 /// <reference path="../types/virtual-public-ttf-fonts.d.ts" />
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 import type { Route } from "./+types/text-to-png";
 import { getStoredFontData, listStoredFonts, saveTtfFont, type StoredFontMeta } from "../utils/fontStorage";
 import { publicTtfFonts } from "virtual:public-ttf-fonts";
@@ -407,17 +408,25 @@ export default function TextToPngRoute() {
 		<main className="min-h-screen p-3 sm:p-6">
 			<div className="mx-auto max-w-5xl">
 				<div className="flex items-center justify-between gap-3">
-					<h1 className="text-lg md:text-2xl font-semibold tracking-tight">文字圖片</h1>
-					<div
-						className="rounded-full border border-gray-200 dark:border-gray-800 px-2.5 py-1 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap"
-						title={
-							transparentCheck
-								? `角落 alpha: ${transparentCheck.cornerAlphas.join(", ")}`
-								: "輸出/預覽後會顯示透明檢查"
-						}
-					>
-						透明 {transparentCheck ? (transparentCheck.isTransparent ? "OK" : "? ") : "…"}
+					<div className="flex items-center gap-3">
+						<h1 className="text-lg md:text-2xl font-semibold tracking-tight">文字圖片</h1>
+						<div
+							className="rounded-full border border-gray-200 dark:border-gray-800 px-2.5 py-1 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap"
+							title={
+								transparentCheck
+									? `角落 alpha: ${transparentCheck.cornerAlphas.join(", ")}`
+									: "輸出/預覽後會顯示透明檢查"
+							}
+						>
+							透明 {transparentCheck ? (transparentCheck.isTransparent ? "OK" : "? ") : "…"}
+						</div>
 					</div>
+					<Link
+						to="/"
+						className="rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-100 whitespace-nowrap"
+					>
+						回到首頁
+					</Link>
 				</div>
 
 				<div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 md:auto-rows-min">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router';
 import { analyzeInvoice } from '../services/invoiceService';
 import type { InvoiceResult } from '../services/invoiceService';
 import InvoiceUpload from '../components/invoice/InvoiceUpload';
@@ -83,12 +84,34 @@ export default function InvoiceRecognition() {
   return (
     <div className="invoice-container">
       <header className="invoice-header">
-        <div className="logo-mark">⌗</div>
-        <div className="header-text">
-          <h1>發票辨識系統</h1>
-          <p>INVOICE · RECOGNITION · AI</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="logo-mark">⌗</div>
+          <div className="header-text">
+            <h1>發票辨識系統</h1>
+            <p>INVOICE · RECOGNITION · AI</p>
+          </div>
         </div>
-        <div className="badge">● AI POWERED</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '38px',
+              padding: '0 16px',
+              borderRadius: '999px',
+              border: '1px solid rgba(255,255,255,0.14)',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#f3f6ff',
+              textDecoration: 'none',
+              fontWeight: 700,
+            }}
+          >
+            回到首頁
+          </Link>
+          <div className="badge">● AI POWERED</div>
+        </div>
       </header>
 
       <div className="main-grid">
