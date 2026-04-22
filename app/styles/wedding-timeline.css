@@ -1,0 +1,366 @@
+:root {
+  --gold: #c9a96e;
+  --gold-light: #e8d5b0;
+  --gold-pale: #f5eedf;
+  --ink: #1a1410;
+  --ink-soft: #3d3229;
+  --parchment: #faf6ef;
+  --rose: #c4846a;
+  --sage: #7a9e8e;
+  --blue: #6a8faf;
+}
+
+.wt-body {
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: 'Noto Serif TC', serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.wt-body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(201,169,110,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 80%, rgba(196,132,106,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(122,158,142,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.wt-page-corners::before,
+.wt-page-corners::after {
+  content: '❧';
+  position: fixed;
+  font-size: 2rem;
+  color: var(--gold);
+  opacity: 0.3;
+}
+.wt-page-corners::before { top: 1.5rem; left: 1.5rem; transform: rotate(180deg); }
+.wt-page-corners::after  { bottom: 1.5rem; right: 1.5rem; }
+
+.wt-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+/* Header */
+.wt-header {
+  text-align: center;
+  margin-bottom: 4rem;
+  animation: wt-fadeDown 0.8s ease both;
+}
+
+.wt-header-pre {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--gold);
+  letter-spacing: 0.2em;
+  margin-bottom: 0.6rem;
+}
+
+.wt-header h1 {
+  font-size: 2.6rem;
+  font-weight: 300;
+  color: var(--ink);
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
+
+.wt-header-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+
+.wt-header-divider::before,
+.wt-header-divider::after {
+  content: '';
+  flex: 1;
+  max-width: 120px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold));
+}
+.wt-header-divider::after {
+  background: linear-gradient(to left, transparent, var(--gold));
+}
+
+.wt-header-divider span {
+  color: var(--gold);
+  font-size: 1.1rem;
+}
+
+.wt-header-date {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.25em;
+  opacity: 0.7;
+}
+
+/* Phase blocks */
+.wt-phase {
+  margin-bottom: 3rem;
+  animation: wt-fadeUp 0.6s ease both;
+}
+
+.wt-phase:nth-child(1) { animation-delay: 0.1s; }
+.wt-phase:nth-child(2) { animation-delay: 0.2s; }
+.wt-phase:nth-child(3) { animation-delay: 0.3s; }
+.wt-phase:nth-child(4) { animation-delay: 0.4s; }
+.wt-phase:nth-child(5) { animation-delay: 0.5s; }
+
+.wt-phase-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.wt-phase-icon {
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  border: 1.5px solid;
+}
+
+.wt-phase-icon.prep  { background: rgba(201,169,110,0.12); border-color: var(--gold); }
+.wt-phase-icon.ring  { background: rgba(196,132,106,0.12); border-color: var(--rose); }
+.wt-phase-icon.car   { background: rgba(122,158,142,0.12); border-color: var(--sage); }
+.wt-phase-icon.photo { background: rgba(201,169,110,0.10); border-color: var(--gold); }
+.wt-phase-icon.banq  { background: rgba(106,143,175,0.12); border-color: var(--blue); }
+
+.wt-phase-title {
+  flex: 1;
+}
+
+.wt-phase-title h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+.wt-phase-title span {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  opacity: 0.65;
+  letter-spacing: 0.1em;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+}
+
+.wt-phase-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold-light), transparent);
+  opacity: 0.6;
+}
+
+/* Timeline rows */
+.wt-timeline {
+  position: relative;
+  padding-left: 5.5rem;
+}
+
+.wt-timeline::before {
+  content: '';
+  position: absolute;
+  left: 3.8rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--gold-light), transparent);
+  opacity: 0.5;
+}
+
+.wt-timeline-item {
+  position: relative;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.wt-timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.wt-time-label {
+  position: absolute;
+  left: -5.5rem;
+  width: 4.8rem;
+  text-align: right;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.82rem;
+  color: var(--gold);
+  letter-spacing: 0.03em;
+  padding-top: 0.18rem;
+  white-space: nowrap;
+}
+
+.wt-dot {
+  position: absolute;
+  left: -1.75rem;
+  top: 0.45rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(201,169,110,0.15);
+}
+
+.wt-item-content {
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  flex: 1;
+  border-left: 3px solid var(--gold-light);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.wt-item-content:hover {
+  border-left-color: var(--gold);
+  box-shadow: 0 3px 12px rgba(201,169,110,0.15);
+}
+
+.wt-item-content.rose { border-left-color: rgba(196,132,106,0.4); }
+.wt-item-content.rose:hover { border-left-color: var(--rose); box-shadow: 0 3px 12px rgba(196,132,106,0.15); }
+.wt-item-content.sage { border-left-color: rgba(122,158,142,0.4); }
+.wt-item-content.sage:hover { border-left-color: var(--sage); box-shadow: 0 3px 12px rgba(122,158,142,0.15); }
+.wt-item-content.blue { border-left-color: rgba(106,143,175,0.4); }
+.wt-item-content.blue:hover { border-left-color: var(--blue); box-shadow: 0 3px 12px rgba(106,143,175,0.15); }
+
+.wt-item-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.03em;
+}
+
+.wt-item-duration {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: var(--gold);
+  background: var(--gold-pale);
+  border-radius: 20px;
+  padding: 0.05rem 0.55rem;
+  margin-bottom: 0.3rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  letter-spacing: 0.05em;
+}
+
+.wt-item-detail {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.7;
+  opacity: 0.85;
+}
+
+.wt-item-detail ol {
+  padding-left: 1.2rem;
+}
+
+.wt-item-detail li {
+  margin-bottom: 0.1rem;
+}
+
+.wt-note {
+  display: inline-block;
+  background: rgba(196,132,106,0.1);
+  color: var(--rose);
+  border-radius: 4px;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.75rem;
+  margin-left: 0.3rem;
+}
+
+/* Three-entry cards for banquet */
+.wt-entry-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.wt-entry-card {
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem 0.8rem;
+  border-top: 3px solid;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  font-size: 0.8rem;
+}
+
+.wt-entry-card.one   { border-color: var(--gold); }
+.wt-entry-card.two   { border-color: var(--blue); }
+.wt-entry-card.three { border-color: var(--rose); }
+
+.wt-entry-card-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 0.3rem;
+  color: var(--ink);
+}
+
+.wt-entry-card-tag {
+  font-size: 0.72rem;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+  color: var(--ink-soft);
+  opacity: 0.7;
+  margin-bottom: 0.4rem;
+}
+
+.wt-entry-card-detail {
+  color: var(--ink-soft);
+  line-height: 1.6;
+  font-size: 0.78rem;
+}
+
+/* Footer */
+.wt-footer {
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--gold-light);
+  color: var(--gold);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  opacity: 0.8;
+  animation: wt-fadeUp 0.6s ease 0.6s both;
+}
+
+@keyframes wt-fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wt-fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .wt-header h1 { font-size: 1.8rem; }
+  .wt-timeline { padding-left: 4.5rem; }
+  .wt-time-label { left: -4.5rem; width: 3.8rem; font-size: 0.74rem; }
+  .wt-timeline::before { left: 2.9rem; }
+  .wt-dot { left: -1.55rem; }
+  .wt-entry-cards { grid-template-columns: 1fr; }
+}

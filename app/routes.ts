@@ -5,6 +5,7 @@ export default [
   route("invoice", "routes/invoice.tsx"),
   route("rail", "routes/rail.tsx"),
   route("text-to-png", "routes/text-to-png.tsx"),
+  route("wedding-timeline", "routes/wedding-timeline.tsx"),
   route("api/invoice-analyze", "routes/api.invoice-analyze.tsx"),
   route("*", "routes/$.tsx"),
 ] satisfies RouteConfig;

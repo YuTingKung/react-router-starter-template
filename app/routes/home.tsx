@@ -49,6 +49,11 @@ export default function Home({}: Route.ComponentProps) {
 
 	return (
 		<section className="home-shell">
+			<div className="home-extra-links">
+				<Link className="home-extra-link" to="/wedding-timeline">
+					💍 婚禮流程時間軸
+				</Link>
+			</div>
 			<div className="home-tabs">
 				<div className="home-tabs__list" role="tablist" aria-label="功能分頁">
 					{featureCards.map((card) => (
